@@ -1,0 +1,42 @@
+# MERA.RU dictionary
+
+VENDOR		Mera		9
+
+BEGIN-VENDOR	Mera
+
+ATTRIBUTE	xpgk-md5-auth				1	string		#octets
+ATTRIBUTE	xpgk-request-type			1	string
+ATTRIBUTE	xpgk-ep-number				1	string		#integer
+ATTRIBUTE	xpgk-destination-user			1	string
+ATTRIBUTE	xpgk-h323-id				1	string
+ATTRIBUTE	xpgk-src-number-in			1	string		#integer
+ATTRIBUTE	xpgk-src-number-out			1	string		#integer
+ATTRIBUTE	xpgk-dst-number-in			1	string		#integer
+ATTRIBUTE	xpgk-dst-number-out			1	string		#integer
+ATTRIBUTE	xpgk-route-retries			1	string		#integer
+ATTRIBUTE	xpgk-destination-user			1	string
+ATTRIBUTE	xpgk-local-disconnect-cause		1	string		#value
+ATTRIBUTE	xpgk-lar-fault				1	string		#value
+ATTRIBUTE	xpgk-src-codec				1	string		#codec list
+ATTRIBUTE	xpgk-dst-codec				1	string		#codec list
+ATTRIBUTE	xpgk-initial-incoming-local-address	1	string		#ipaddr
+ATTRIBUTE	xpgk-selected-incoming-local-address	1	string		#ipaddr
+ATTRIBUTE	xpgk-selected-outgoing-local-address	1	string		#ipaddr
+ATTRIBUTE	xpgk-converter-name			1	string
+ATTRIBUTE	xpgk-converter-address			1	string		#ipaddr
+ATTRIBUTE	xpgk-pdd-time				1	string		#date
+ATTRIBUTE	xpgk-routing-request			1	string		#integer
+ATTRIBUTE       xpgk-xrouting-routing                   1       string
+ATTRIBUTE       xpgk-xrouting-username                  1       string
+
+
+ATTRIBUTE xpgk_centrex_cookie     1 string
+ATTRIBUTE xpgk_centrex_dvo      1 string
+ATTRIBUTE xpgk_centrex_calltype     1 string
+ATTRIBUTE xpgk_centrex_source     1 string
+ATTRIBUTE xpgk_centrex_destination    1 string
+ATTRIBUTE xpgk_centrex_billing_id     1 string
+ATTRIBUTE xpgk_centrex_line_name      1 string
+
+
+END-VENDOR	Mera
