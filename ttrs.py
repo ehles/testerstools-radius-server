@@ -43,20 +43,20 @@ class genericConfiguration:
         # Option : Default value
         "PODRequest" : ["Accounting", "Authentication"],
         "PODTimeout" : 10,
-        "AuthUsers"  : ["ru9990611"],
-        "AccUsers"   : ["ru9990611"],
-        "PODSendFor" : ["ru9990611"],
+        "AuthUsers"  : [],
+        "AccUsers"   : [],
+        "PODSendFor" : [],
         "CustomAuthAcceptAttributes" : {},
         "CustomAuthRejectAttributes" : {},
         "CustomAccountingAttributes" : {},
         "server_authport" : 9812,
         "server_acctport" : 9813,
-        "server_ip"       : "192.168.128.61",
-        "server_secret"   : "123",
+        "server_ip"       : "127.0.0.1",
+        "server_secret"   : "secret",
         "remote_ips"      : [],
         "loggingTo"       : ["screen"],#["file", "screen"],
-        "logFileName"     : "radius_log.txt",
-        "configSyncTimeout" : 10
+        "logFileName"     : "ttrs.log",
+        "configSyncTimeout" : 60
     }
     def __init__(self):
         # Setup default options
@@ -64,8 +64,12 @@ class genericConfiguration:
             log("Set default value for option:'%s' = '%s'" % (opt, val), self)
             setattr(self, opt, val)
         # Create synchronization thread
-        syncThr = threading.Thread(target=self.repeater)
-        syncThr.start()
+        self.alive = True
+        self.thread = threading.Thread(target=self.repeater)
+        self.thread.start()
+
+    def stop(self):
+        self.alive = False
 
     def synchronizeOptions(self):
         try:
@@ -93,10 +97,15 @@ class genericConfiguration:
         #    sys.exit(1)
 
     def repeater(self):
-        while True:
-            self.synchronizeOptions()
-            log("Configuration synchronized.", self)
-            time.sleep(self.configSyncTimeout)
+        i = 0
+        self.synchronizeOptions()
+        while self.alive:
+            i += 1
+            if i >= self.configSyncTimeout:
+                self.synchronizeOptions()
+                log("Configuration synchronized.", self)
+                i = 0
+            time.sleep(1)
 
 ##############################################################################
 # Code section:
@@ -112,6 +121,7 @@ class logger():
             except:
                 self.fout = None
                 out("ERROR: Can't open file for logging.")
+
     def updateSetup(self, dst=["screen"], filename=""):
         self.fout = None
         self.dst = dst
@@ -126,12 +136,14 @@ class logger():
             except:
                 self.fout = None
                 out("ERROR: Can't open file for logging.")
+
     def out(self, str):
         str = "[%s]: %s" % (time.time(), str)
         if "file" in self.dst:
             self.fout.write(str+"\n")
         if "screen" in self.dst:
             print(str)
+
     def __call__(self, str, who=None):
         self.out("[%s] %s"%(who.__class__.__name__, str))
 
@@ -156,12 +168,16 @@ class radiusServer(server.Server):
 
     def createThread(self):
         # create thread
-        thr = threading.Thread(target=self.podProcessor)
-        thr.start()
+        self.alive = True
+        self.thread = threading.Thread(target=self.podProcessor)
+        self.thread.start()
+
+    def stop(self):
+        self.alive = False
 
     def podProcessor(self):
         call = None
-        while True:
+        while self.alive:
             try:
                 # Wait for data
                 call = self.podQueue.get_nowait()
@@ -176,9 +192,9 @@ class radiusServer(server.Server):
                 reply = self.CreateReplyPacket(call["packet"])
                 reply.code = packet.DisconnectRequest
                 reply["h323-conf-id"] = "%s" % call["confid"]
-                log("Send POD for confId:[%s]; %s calls in PODs queue."% (call["confid"],len(self.podQueue)), self)
+                log("Send POD for confId:[%s]; %s calls in PODs queue."% (call["confid"],self.podQueue.qsize()), self)
                 self.SendReplyPacket(call["packet"].fd, reply)
-                # tack complete
+                # task complete
                 self.podQueue.task_done()
             else:
                 # It's not time for death of this call
@@ -192,7 +208,7 @@ class radiusServer(server.Server):
         log("Received Auth request #%s" % self.authCounter, self)
         log("KikedCalls storage length: %s" % len(self.KikedCalls), self)
         log("Request:", self)
-        log.logFormatPacket(reply)
+        log.logFormatPacket(pkt)
         server.Server._HandleAuthPacket(self, pkt)
         UserName = pkt.get("User-Name", "None")[0]
         ConfId = pkt.get("h323-conf-id",[None])[0]
@@ -225,7 +241,7 @@ class radiusServer(server.Server):
         self.accCounter = self.accCounter+1
         log("Received Acc request #%s" % self.accCounter, self)
         log("Request:", self)
-        log.logFormatPacket(reply)
+        log.logFormatPacket(pkt)
         server.Server._HandleAcctPacket(self, pkt)
         UserName = pkt.get("User-Name", "None")[0]
         ConfId = pkt.get("h323-conf-id",[None])[0]
@@ -258,6 +274,8 @@ class radiusServer(server.Server):
 #        pass
 def main():
     try:
+        config = genericConfiguration()
+        log.updateSetup(config.loggingTo, config.logFileName)
         log("Create server instance")
         s = radiusServer(dict=dictionary.Dictionary("dictionaries/dictionary", "dictionaries/dictionary.cisco", "dictionaries/dictionary.mera"), authport=config.server_authport, acctport=config.server_acctport)
         for remoteServer in config.remote_ips:
@@ -269,14 +287,14 @@ def main():
         log("Run server")
         s.Run()
     except KeyboardInterrupt:
-        print "KeyboardInterrupt!"
+        log("Stopping server. Keyboard Interrupt!")
+        s.stop()
+        config.stop()
         sys.exit(1)
-    except:
-        print "Unexpected error!"
+    except Exception, e:
+        print "Unexpected error! %s" % e
         sys.exit(1)
 
 if __name__ == "__main__":
     log = logger()
-    config = genericConfiguration()
-    log.updateSetup(config.loggingTo, config.logFileName)
     main()
