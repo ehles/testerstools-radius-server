@@ -274,7 +274,6 @@ class radiusServer(server.Server):
 #        pass
 def main():
     try:
-        config = genericConfiguration()
         log.updateSetup(config.loggingTo, config.logFileName)
         log("Create server instance")
         s = radiusServer(dict=dictionary.Dictionary("dictionaries/dictionary", "dictionaries/dictionary.cisco", "dictionaries/dictionary.mera"), authport=config.server_authport, acctport=config.server_acctport)
@@ -297,4 +296,5 @@ def main():
 
 if __name__ == "__main__":
     log = logger()
+    config = genericConfiguration()
     main()
